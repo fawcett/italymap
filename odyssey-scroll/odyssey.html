@@ -1,0 +1,357 @@
+<!doctype><html><head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>Odyssey.js Scroll</title>
+  <meta name="description" content="">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <link rel="icon" type="image/x-icon" href="http://cartodb.github.io/odyssey.js/sandbox/favicon.png">
+  <link rel="icon" type="image/png" href="http://cartodb.github.io/odyssey.js/sandbox/favicon.png">
+
+  <link rel="stylesheet" href="http://cartodb-libs.global.ssl.fastly.net/cartodb.js/v3/themes/css/cartodb.css">
+  <link rel="stylesheet" href="http://cartodb.github.io/odyssey.js/sandbox/css/scroll.css">
+  <script src="http://cartodb.github.io/odyssey.js/vendor/modernizr-2.6.2.min.js"></script>
+</head>
+<body>
+  <div id="layout">
+    <!--<div class="progress-bar"></div>-->
+
+    <div class="inner-header">
+      <div id="header"></div>
+    </div>
+
+    <div id="map_pos">
+      <div id="map_container">
+        <div id="map"></div>
+      </div>
+    </div>
+
+    <div id="content"></div>
+
+    <div id="credits">
+      <span class="title" id="title">Title</span>
+      <span class="author"><b id="author">By Name using</b> <a href="#">Odyssey.js</a><span>
+    </span></span></div>
+  </div> <!-- layout -->
+
+  <script src="http://cartodb-libs.global.ssl.fastly.net/cartodb.js/v3/cartodb.js"></script>
+  <script src="http://cartodb.github.io/odyssey.js/dist/odyssey.js" charset="UTF-8"></script>
+
+  <script>
+    O.Template({
+      init: function() {
+        var baseurl = this.baseurl = 'http://{s}.api.cartocdn.com/base-light/{z}/{x}/{y}.png';
+        var map = this.map = L.map('map',{
+          center: [0, 0],
+          zoom: 4
+        });
+
+        this.map.scrollWheelZoom.disable();
+
+        var basemap = this.basemap = L.tileLayer(baseurl, {
+          attribution: 'data OSM - map CartoDB'
+        }).addTo(map);
+
+        var story = O.Story()
+
+        this.story = story;
+        this.miniprogressbar = O.MiniProgressBar();
+
+        // trigger when  map_pos go out of the screen
+        this.edge = O.Edge(
+          O.Triggers.Scroll().less('map_pos').offset(0),
+          O.Triggers.Scroll().greater('map_pos').offset(0)
+        )
+      },
+
+      update: function(actions) {
+        var self = this;
+
+        this.story.clear();
+
+        if (this.baseurl && (this.baseurl !== actions.global.baseurl)) {
+          this.baseurl = actions.global.baseurl || 'http://0.api.cartocdn.com/base-light/{z}/{x}/{y}.png';
+
+          this.basemap.setUrl(this.baseurl);
+        }
+
+        if (this.cartoDBLayer && ("http://"+self.cartoDBLayer.options.user_name+".cartodb.com/api/v2/viz/"+self.cartoDBLayer.options.layer_definition.stat_tag+"/viz.json" !== actions.global.vizjson)) {
+          this.map.removeLayer(this.cartoDBLayer);
+
+          this.cartoDBLayer = null;
+          this.created = false;
+        }
+
+        if (actions.global.vizjson && !this.cartoDBLayer) {
+          if (!this.created) { // sendCode debounce < vis loader
+            cdb.vis.Loader.get(actions.global.vizjson, function(vizjson) {
+              self.map.fitBounds(vizjson.bounds);
+
+              cartodb.createLayer(self.map, vizjson)
+                .done(function(layer) {
+                  self.cartoDBLayer = layer;
+
+                  var sublayer = layer.getSubLayer(0),
+                      layer_name = layer.layers[0].options.layer_name,
+                      filter = actions.global.cartodb_filter ? " WHERE "+actions.global.cartodb_filter : "";
+
+                  sublayer.setSQL("SELECT * FROM "+layer_name+filter)
+
+                  self.map.addLayer(layer);
+
+                  self._resetActions(actions);
+                }).on('error', function(err) {
+                  console.log("some error occurred: " + err);
+                });
+            });
+
+            this.created = true;
+          }
+
+          return;
+        }
+
+        this._resetActions(actions);
+      },
+
+      _resetActions: function(actions) {
+        // update footer title and author
+        var title_ = actions.global.title === undefined ? '' : actions.global.title,
+            author_ = actions.global.author === undefined ? 'Using' : 'By '+actions.global.author+' using';
+
+        document.getElementById('title').innerHTML = title_;
+        document.getElementById('author').innerHTML = author_;
+        document.title = title_ + " | " + author_ +' Odyssey.js';
+
+        var TRIGGER_LINE = this.map.getSize().y + 50;
+        this.story.addEvent(
+          this.edge,
+          O.Parallel(
+            O.Actions.CSS($('#map_container')).toggleClass('attachTop'),
+            O.Actions.CSS($('#content')).toggleClass('attachMap'),
+            O.Actions.Debug().log('attach')
+          )
+        )
+
+        // create content
+        var content = '';
+
+        var slide_ = actions[0];
+        $('#header').html(slide_.html());
+
+        this.story
+          .addState(
+            O.Scroll().within($('#header')),
+            slide_(this)
+          );
+
+        for(var i = 1; i < actions.length; ++i) {
+          var slide = actions[i];
+          content += "<div id='s_" + i +"'>" + slide.html() + "</div>";
+        }
+
+        $('#content').html(content);
+
+        // first slide is the header, skip it
+        for(var i = 1; i < actions.length; ++i) {
+          var slide = actions[i];
+          this.story.addState(
+            O.Triggers.Scroll().within('s_' + i).offset(TRIGGER_LINE),
+            O.Parallel(
+              slide(this),
+              this.miniprogressbar.percent(100*i/(actions.length - 1))
+            )
+          )
+        }
+
+        if(window.scrollY === 0) {
+          this.story.go(0);
+        }
+      }
+    });
+  </script>
+
+  <script>
+    (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+    (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+    m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+    })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+    ga('create', 'UA-20934186-21', 'cartodb.github.io');
+    ga('send', 'pageview');
+  </script>
+
+
+<script id="md_template" type="text/template">```
+-baseurl: "http://{s}.tile.stamen.com/watercolor/{z}/{x}/{y}.jpg"
+-title: "Tuscany"
+-author: "David"
+```
+
+#A trip to Tuscany
+```
+L.marker([37.7620, -122.4385]).actions.addRemove(S.map)
+- center: [45.3984, 12.3926]
+- zoom: 4
+```
+
+We landed in Venice.
+
+
+#Venice
+```
+- center: [45.4360, 12.3528]
+- zoom: 10
+```
+Looking out over the lagoon.
+
+![Venice](https://raw.githubusercontent.com/fawcett/italymap/master/images/boats.jpg)
+
+
+Neighborhood bridge. 
+
+![Happy Bridge](https://raw.githubusercontent.com/fawcett/italymap/master/images/bridge.jpg)
+
+
+The 'Bridge of Sighs', connecting the New Prison (Prigioni Nuove) to the interrogation rooms in the Doge's Palace.
+
+![Happy Bridge](https://raw.githubusercontent.com/fawcett/italymap/master/images/sighs.jpg)
+
+![Wall](https://raw.githubusercontent.com/fawcett/italymap/master/images/wall.jpg)
+
+
+#Bologna
+```
+- center: [44.4935, 11.3422]
+- zoom: 18
+```
+
+Tabacchi, just off of Piazza Maggiorre. 
+
+![Tobacchi](https://github.com/fawcett/italymap/raw/master/images/tabacchi.jpg)
+
+
+Fresh fish in one of the shops down a via from Piazza Maggiorre. 
+
+![Pesc](https://raw.githubusercontent.com/fawcett/italymap/master/images/pesc.jpg)
+
+
+Warm Fall light in Bologna. 
+
+![Pesc](https://raw.githubusercontent.com/fawcett/italymap/master/images/citroen.jpg)
+
+
+#Sienna
+```
+- center: [43.3228, 11.3050]
+- zoom: 15
+```
+
+Agriturismo Marciano, just outside of Sienna. 
+
+![Agriturismo](https://raw.githubusercontent.com/fawcett/italymap/master/images/agritourismo.jpg)
+
+
+The courtyard. 
+
+![Agriturismo Marciano](https://raw.githubusercontent.com/fawcett/italymap/master/images/agriinside.jpg)
+
+
+Grapes, olives, and honey are grown on the grounds, and at their other vineyard.  Every few nights, they offer a dinner made with their products and paired with their wines. 
+
+![Agriturismo](https://raw.githubusercontent.com/fawcett/italymap/master/images/siennagrapes.jpg)
+
+
+
+The best cookies in the whole world. 
+
+![Cookies](https://raw.githubusercontent.com/fawcett/italymap/master/images/cookies.jpg)
+
+#Montepulciano
+```
+- center: [43.0923, 11.7817]
+- zoom: 16
+```
+
+View from the roof of Meuble Il Riccio in Montepulciano. 
+
+![Roof View](https://raw.githubusercontent.com/fawcett/italymap/master/images/montepulciano.jpg)
+
+
+#San Biagio
+```
+- center: [43.0904, 11.7767]
+- zoom: 17
+```
+
+Morning drive just outside of Montepulciano
+![San Biagio](https://raw.githubusercontent.com/fawcett/italymap/master/images/sanbiagio.jpg)
+
+
+#Montalcino
+```
+- center: [43.0557, 11.4900]
+- zoom: 13
+```
+
+View from the roof of our hotel in Montepulciano. 
+
+![Montalcino](https://raw.githubusercontent.com/fawcett/italymap/master/images/montalcino.jpg)
+
+
+#Il Palazzone
+```
+- center: [43.0470, 11.4827]
+- zoom: 14
+```
+
+View from the roof of our hotel in Montepulciano. 
+
+![Il Palazzone](https://github.com/fawcett/italymap/raw/master/images/ilpalazzone.jpg)
+
+Oak fermentation barrels in the cellar. 
+
+![Fermentation Barrels](https://raw.githubusercontent.com/fawcett/italymap/master/images/fermentation.jpg)
+
+The aging (and tasting) room. 
+
+![Aging Room](https://raw.githubusercontent.com/fawcett/italymap/master/images/tastingroom.jpg)
+
+
+Sangiovese. 
+
+![Sangiovese grapes](https://raw.githubusercontent.com/fawcett/italymap/master/images/sangiovese.jpg)
+
+
+#Pienza
+```
+- center: [43.0767, 11.6790]
+- zoom: 15
+```
+
+A day trip to Pienza.
+
+![A lamp in Pienza](https://raw.githubusercontent.com/fawcett/italymap/master/images/lamp_pienza.jpg)
+
+
+
+#Back in Venice, and then home...
+```
+- center: [45.4404, 12.3213]
+- zoom: 14
+```
+
+We headed back to Venice for a night, and then through the train station on the way to the airport.
+
+
+Scampi and Strawberries, awesome together.
+![Scampi](https://raw.githubusercontent.com/fawcett/italymap/master/images/scampi_strawberries.jpg)
+
+A foggy day on the Grand Canal.
+
+![A foggy day on the Grand Canal](https://raw.githubusercontent.com/fawcett/italymap/master/images/canal.jpg)
+
+![Train Station](https://raw.githubusercontent.com/fawcett/italymap/master/images/trainstation.jpg)
+
+
+</script></body></html>
