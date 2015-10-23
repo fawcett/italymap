@@ -16,6 +16,9 @@ https://photos.google.com/album/AF1QipNRaDBRw8joZb18TG9W0fssPglp2JA9sQI1XtgL
 * Explore Christo And Jeanne-Claude's Works Of Art: http://www.kpbs.org/embedded/2014/feb/04/7946/ 
 * Chisholm Trail Parkway: https://cdn.knightlab.com/libs/storymapjs/latest/embed/?url=https://www.googledrive.com/host/0B4TakYGCSOR4RjNYaG5RcUJwdFU/published.json
 * Game of Thrones: http://cdn.knightlab.com/libs/storymapjs/latest/embed/?url=https://www.googledrive.com/host/0B1d8oNIpMx53Wk9CdDlVZ01qU1E/published.json
+* Sochi Olympic torch relay:  https://storymap.knightlab.com/examples/sochi-2014-olympic-torch-relay/
+* New Craft Brew in WI: http://www.jsonline.com/entertainment/dining/New-craft-breweries-241672361.html
+* Ukraine: http://extras.thetimes.co.uk/public/2014/maps/25-02/Yanukovych_storymap.html
 
 ### Other Examples
 * http://www.nytimes.com/newsgraphics/2013/07/21/silk-road/ 
