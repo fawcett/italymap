@@ -5,6 +5,7 @@ https://photos.google.com/album/AF1QipNRaDBRw8joZb18TG9W0fssPglp2JA9sQI1XtgL
 
 ### General
 * http://schoolofdata.org/2014/08/25/seven-ways-to-create-a-storymap/
+* http://www.azavea.com/blogs/atlas/2015/02/using-odysseyjs-sandbox/
 
 ### Odyssey.js
 * https://cartodb.github.io/odyssey.js/ 
@@ -23,3 +24,5 @@ https://photos.google.com/album/AF1QipNRaDBRw8joZb18TG9W0fssPglp2JA9sQI1XtgL
 ### Other Examples
 * http://www.nytimes.com/newsgraphics/2013/07/21/silk-road/ 
 * http://www.nytimes.com/newsgraphics/2013/10/13/russia/
+* http://www.nytimes.com/interactive/2014/07/03/world/middleeast/syria-iraq-isis-rogue-state-along-two-rivers.html?_r=0
+* Chris Henrick's PCT Story: http://clhenrick.github.io/Major-Studio-Two/map-story/html/
